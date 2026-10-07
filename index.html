@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Likho — Handwriting Assignment Generator</title>
+  <style>
+    :root {
+      --bg: #f3f7fd;
+      --panel: #ffffff;
+      --line: #dce6f2;
+      --ink: #172d4b;
+      --muted: #63748c;
+      --green: #0873df;
+      --green-dark: #123d78;
+      --green-soft: #eaf2ff;
+      --coral: #f28b67;
+      --yellow: #f3c95f;
+      --amber: #e5a565;
+      --danger: #b95452;
+      --shadow: 0 18px 48px rgba(48, 61, 43, 0.09);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; color: var(--ink);
+      background-color: var(--bg);
+      background-image: radial-gradient(#cfe0f5 0.8px, transparent 0.8px);
+      background-size: 24px 24px;
+      font-family: Inter, "Segoe UI", sans-serif;
+    }
+    body { min-height: 100vh; }
+    a { color: inherit; }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 15px max(5vw, calc((100vw - 1240px) / 2));
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(220, 230, 242, 0.9); position: sticky; top: 0; z-index: 4;
+    }
+    .brand { display: inline-flex; align-items: center; flex: 0 1 auto; text-decoration: none; }
+    .brand-image { display: block; width: clamp(210px, 23vw, 296px); height: auto; }
+    .brand-mark { display: none; }
+    .status-pill {
+      font-size: 0.76rem; padding: 8px 12px; background: var(--green-soft); color: var(--green-dark); border: 1px solid #c9dcf5; border-radius: 999px; font-weight: 750;
+    }
+
+    .page-shell {
+      width: min(1240px, calc(100% - 40px)); margin: 35px auto 64px;
+    }
+
+    .hero {
+      position: relative; display: flex; min-height: 270px; align-items: center; justify-content: space-between;
+      overflow: hidden; padding: 35px 42px; border: 1px solid #d6e5f8; border-radius: 26px;
+      background: linear-gradient(115deg, #f4f8ff 0%, #eaf3ff 48%, #edf5ff 100%);
+      box-shadow: 0 18px 40px rgba(30, 73, 133, 0.09);
+    }
+    .hero::before, .hero::after {
+      position: absolute; content: ""; border-radius: 50%; pointer-events: none;
+    }
+    .hero::before { width: 250px; height: 250px; top: -155px; left: 34%; background: rgba(35, 113, 222, 0.09); }
+    .hero::after { width: 190px; height: 190px; right: 26%; bottom: -135px; background: rgba(15, 96, 198, 0.09); }
+    .hero-copy-block { position: relative; z-index: 1; max-width: 650px; }
+    .hero-kicker {
+      display: inline-flex; align-items: center; gap: 7px; margin-bottom: 14px; padding: 7px 11px;
+      border: 1px solid #ceddf3; border-radius: 999px; background: rgba(255,255,255,0.82);
+      color: #244b81; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.055em; text-transform: uppercase;
+    }
+    h1 {
+      max-width: 630px; margin: 0; font-size: clamp(2.25rem, 4.4vw, 3.7rem); letter-spacing: -0.065em; line-height: 1.03;
+    }
+    h1 em { color: var(--green); font-style: normal; }
+    .hero-description {
+      margin: 14px 0 0; color: #546a88; font-size: 0.96rem; max-width: 570px; line-height: 1.65;
+    }
+    .hero-art { position: relative; z-index: 1; width: min(39%, 410px); min-width: 260px; margin: -15px -8px -25px 12px; }
+    .hero-art svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+    .workspace {
+      display: grid; grid-template-columns: minmax(320px, 420px) minmax(0, 1fr); gap: 22px;
+      margin-top: 23px; align-items: start;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.97); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .panel-header {
+      position: relative; padding: 21px 22px 17px; border-bottom: 1px solid #e7edf5;
+    }
+    .panel-header h2 {
+      margin: 0; font-size: 1.03rem; letter-spacing: -0.025em;
+    }
+    .panel-header p {
+      margin: 6px 0 0; color: var(--muted); font-size: 0.79rem;
+    }
+
+    form { padding: 19px 22px 22px; }
+    .field { margin-bottom: 18px; }
+    label {
+      display: block; margin-bottom: 7px; font-size: 0.76rem; font-weight: 750; color: #31423f; letter-spacing: 0.005em;
+    }
+    .hint {
+      display: block; font-size: 0.7rem; color: var(--muted); margin-top: 6px; line-height: 1.5;
+    }
+
+    input[type="text"], input[type="number"], input[type="email"], input[type="password"], select, textarea {
+      width: 100%; padding: 12px 13px; border-radius: 11px; border: 1px solid #d6e1ef; background: #fff; color: var(--ink); transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, select:focus, textarea:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 4px rgba(8,115,223,0.12); }
+
+    .upload-box {
+      position: relative; display: flex; align-items: center; gap: 12px; min-height: 110px; padding: 14px 12px; border: 1.5px dashed #bfd1e2; border-radius: 14px; background: linear-gradient(145deg, #fbfdff, #f3f8ff); transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+    }
+    .upload-box:hover { border-color: #78aee8; transform: translateY(-1px); }
+    .upload-box.dragover { border-color: var(--green); background: var(--green-soft); }
+    .icon-wrap {
+      width: 44px; height: 44px; display: grid; place-items: center; border-radius: 13px; background: #e8f1ff; color: var(--green); font-size: 1.2rem;
+    }
+    .upload-copy { flex: 1; min-width: 0; }
+    .upload-copy strong { display: block; font-size: 0.82rem; }
+    .upload-copy span { display: block; margin-top: 4px; color: var(--muted); font-size: 0.72rem; }
+    .sample-name { margin-top: 8px; color: var(--green-dark); display: none; font-size: 0.7rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sample-name.visible { display: block; }
+    #sampleFile, #designFile { display: none; }
+    .upload-button {
+      border: 1px solid #d9e4f2; background: #fff; color: var(--green-dark); border-radius: 9px; padding: 8px 10px; font-size: 0.75rem; font-weight: 750;
+    }
+    .upload-error { margin-top: 8px; min-height: 18px; color: var(--danger); font-size: 0.72rem; }
+    .upload-preview {
+      width: 52px; height: 64px; object-fit: cover; border: 1px solid var(--line); border-radius: 9px; display: none; background: #fff;
+    }
+    .upload-preview.visible { display: block; }
+
+    .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .notice {
+      display: flex; align-items: flex-start; gap: 10px; background: #f1f6ff; border: 1px solid #d8e5f7; color: #435b7b; border-radius: 13px; padding: 12px 13px; font-size: 0.72rem; line-height: 1.55;
+    }
+    .notice strong { font-weight: 800; }
+
+    .cta {
+      width: 100%; margin-top: 18px; padding: 14px 16px; border: none; border-radius: 12px; background: linear-gradient(115deg, #1684ef, #123d78); color: white; font-size: 0.94rem; font-weight: 800; box-shadow: 0 10px 22px rgba(15,87,173,0.22); transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .cta:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 14px 25px rgba(15,87,173,0.29); }
+    .cta:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .preview-panel { min-height: 690px; }
+    .preview-toolbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; border-bottom: 1px solid #e7edf5;
+    }
+    .preview-toolbar h2 { margin: 0; font-size: 1.03rem; letter-spacing: -0.02em; }
+    .toolbar-actions { display: flex; gap: 8px; }
+    .small-btn {
+      border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 9px; padding: 8px 10px; font-size: 0.76rem; font-weight: 700;
+    }
+    .small-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .preview-stage {
+      background-color: #f1f5fb;
+      background-image: radial-gradient(#d3dfef 0.75px, transparent 0.75px);
+      background-size: 16px 16px;
+      min-height: 620px; padding: 22px 18px 26px; display: flex; justify-content: center; align-items: flex-start;
+    }
+    .preview-empty {
+      max-width: 360px; margin: auto; display: flex; flex-direction: column; align-items: center; text-align: center; color: var(--muted);
+    }
+    .empty-icon {
+      width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; background: white; border: 1px solid var(--line); font-size: 1.6rem; color: var(--green); margin-bottom: 14px;
+    }
+    .preview-empty strong { color: var(--ink); font-size: 0.95rem; }
+    .preview-empty span { margin-top: 7px; line-height: 1.6; font-size: 0.76rem; }
+
+    .pages-grid {
+      width: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px;
+      align-items: start;
+    }
+    .page-card {
+      background-color: #fffefb; border: 1px solid #dfe5e1; border-radius: 16px; padding: 22px 20px 18px; box-shadow: 0 10px 24px rgba(25,41,38,0.04); min-height: 420px; position: relative;
+      isolation: isolate; font-family: "Segoe Print", "Bradley Hand", cursive; color: #2e4c53; line-height: 1.75;
+    }
+    .page-card.has-design::before {
+      position: absolute; z-index: -1; inset: 0; border-radius: inherit; content: "";
+      background-image: var(--page-design-image); background-repeat: no-repeat; background-position: center; background-size: 100% 100%;
+    }
+    .page-card h3 {
+      margin: 0 0 16px; text-align: center; font-size: 1.1rem; font-weight: 800; letter-spacing: 0.02em; color: #2b5364; text-decoration: underline; text-decoration-color: rgba(43,83,100,0.38); text-underline-offset: 7px;
+    }
+    .page-card .topic {
+      margin: 0 0 16px; font-size: 0.76rem; letter-spacing: 0.04em; text-transform: uppercase; color: #4a6a78; font-weight: 800; text-align: center; font-family: Inter, sans-serif;
+    }
+    .page-card p {
+      margin: 0 0 14px; text-indent: 18px; font-size: 0.96rem;
+    }
+    .page-number {
+      position: absolute; z-index: 1; bottom: 10px; right: 18px; font-family: Inter, sans-serif; font-size: 0.68rem; color: #7d8f97; letter-spacing: 0.08em;
+    }
+
+    .section-label {
+      display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 999px; background: #edf4ff; border: 1px solid #d3e2f7; color: var(--green-dark); font-size: 0.68rem; font-weight: 800; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .meta-box {
+      margin-top: 16px; background: #f6f9fe; border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: none;
+    }
+    .meta-box.visible { display: block; }
+    .meta-row {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-top: 10px;
+    }
+    .chip {
+      display: inline-flex; align-items: center; border-radius: 999px; padding: 6px 9px; background: white; border: 1px solid #dbe5f1; color: #24446f; font-size: 0.68rem; font-weight: 700;
+    }
+
+    .status-text {
+      margin-top: 14px; min-height: 20px; color: var(--muted); font-size: 0.72rem;
+    }
+    .status-text.error { color: var(--danger); }
+    .account-panel { max-width: 620px; margin: 22px auto 0; padding: 22px; }
+    .account-panel h2 { margin: 0 0 7px; font-size: 1.12rem; }
+    .account-panel p { color: var(--muted); font-size: 0.82rem; line-height: 1.55; margin: 0 0 15px; }
+    .account-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .account-controls .cta { width: auto; min-width: 130px; margin-top: 0; }
+    .account-mode { display: flex; gap: 8px; margin-bottom: 15px; }
+    .account-mode button, .account-secondary {
+      border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 9px; padding: 8px 11px; font-size: 0.78rem; font-weight: 750;
+    }
+    .account-mode button.active { background: var(--green-soft); border-color: #c9dcf5; color: var(--green-dark); }
+    .account-label { display: block; margin-bottom: 6px; font-size: 0.77rem; font-weight: 750; }
+    .account-field { margin: 12px 0; }
+    .account-field input { width: 100%; }
+    .account-message { min-height: 20px; margin-top: 10px; color: var(--muted); font-size: 0.77rem; }
+    .account-message.error { color: var(--danger); }
+    .workspace[hidden], #verifyPanel[hidden], #accountForm[hidden] { display: none; }
+    .usage-pill { display: inline-block; margin: 5px 0 14px; padding: 7px 11px; border: 1px solid #c9dcf5; border-radius: 999px; background: var(--green-soft); color: var(--green-dark); font-size: 0.76rem; font-weight: 750; }
+
+    @media (max-width: 860px) {
+      .hero { min-height: 245px; padding: 30px 28px; }
+      .hero-art { width: 37%; min-width: 215px; }
+      .workspace { grid-template-columns: 1fr; }
+      .preview-panel { min-height: 540px; }
+      .preview-stage { min-height: 440px; }
+    }
+
+    @media (max-width: 560px) {
+      .topbar { padding-left: 16px; padding-right: 16px; }
+      .brand-image { width: min(250px, 67vw); }
+      .page-shell { width: min(100% - 20px, 1240px); margin-top: 18px; }
+      .hero { min-height: auto; padding: 24px 21px 14px; border-radius: 21px; flex-direction: column; align-items: flex-start; }
+      .hero-copy-block { max-width: none; }
+      .hero-kicker { margin-bottom: 11px; font-size: 0.65rem; }
+      h1 { font-size: clamp(2.1rem, 10vw, 2.8rem); }
+      .hero-description { margin-top: 10px; font-size: 0.88rem; }
+      .hero-art { align-self: center; width: min(87%, 330px); min-width: 0; margin: -3px 0 -18px; }
+      .row { grid-template-columns: 1fr; }
+      .preview-toolbar { align-items: flex-start; flex-direction: column; }
+      .toolbar-actions { width: 100%; }
+      .toolbar-actions button { flex: 1; }
+      form, .panel-header { padding-left: 16px; padding-right: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a href="#" class="brand" aria-label="InkTwin">
+      <img class="brand-image" src="assets/inktwin-logo.png" alt="InkTwin logo" />
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5.5 10.2c5.2-1.9 10-.6 14.5 3.1v17c-4.5-3.7-9.3-5-14.5-3.1v-17Z" fill="white" fill-opacity=".96"/>
+          <path d="M34.5 10.2c-5.2-1.9-10-.6-14.5 3.1v17c4.5-3.7 9.3-5 14.5-3.1v-17Z" fill="white" fill-opacity=".78"/>
+          <path d="M20 13.7v16.6M9.1 15.1c2.5-.4 5 .1 7.2 1.3M9.1 19.1c2.5-.4 5 .1 7.2 1.3M30.9 15.1c-2.5-.4-5 .1-7.2 1.3M30.9 19.1c-2.5-.4-5 .1-7.2 1.3" stroke="#5968B9" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="m27.1 4.7 7.4 7.4-9.8 9.8-5.5 1.5 1.5-5.5 6.4-6.4" fill="#F5C85A"/>
+          <path d="m27.1 4.7 7.4 7.4-2.4 2.4-7.4-7.4 2.4-2.4Z" fill="#FF9B70"/>
+          <path d="m19.2 23.4-1.1 4.3 4.3-1.1-3.2-3.2Z" fill="#F9E8B0"/>
+          <path d="m32.5 6.1 2.1-2.1 3.5 3.5-2.1 2.1" stroke="#FFF7DD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    </a>
+    <div class="status-pill" id="apiStatus">Checking agent…</div>
+  </header>
+
+  <main class="page-shell">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy-block">
+        <div class="hero-kicker"><span aria-hidden="true">✦</span> Your ideas, your handwriting</div>
+        <h1 id="hero-title">Make every page <em>your own.</em></h1>
+        <p class="hero-description">
+          Turn your ideas into school assignments and text pages. Add a handwriting sample, choose a page design, and let Likho help you get started.
+        </p>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <svg viewBox="0 0 440 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="228" cy="263" rx="164" ry="19" fill="#DCE8F7"/>
+          <circle cx="349" cy="73" r="37" fill="#BFD9FF"/>
+          <path d="M66 222L348 222L329 254L85 254L66 222Z" fill="#D79A62"/>
+          <path d="M85 254L329 254L316 273L99 273L85 254Z" fill="#B9784C"/>
+          <rect x="82" y="202" width="256" height="27" rx="7" fill="#ECC08A"/>
+          <path d="M95 205C107 191 125 185 147 186H202V215H103C96 215 92 210 95 205Z" fill="#EA8966"/>
+          <path d="M147 186H203V215H147V186Z" fill="#F5AB76"/>
+          <path d="M215 198C219 189 228 184 239 184H321V217H223C214 217 211 208 215 198Z" fill="#7399C4"/>
+          <path d="M240 184H321V217H240V184Z" fill="#92B2D2"/>
+          <path d="M123 174C123 160 133 149 147 149H293C307 149 317 160 317 174V207H123V174Z" fill="#F8F5E9"/>
+          <path d="M220 151V207" stroke="#D9D2C1" stroke-width="3"/>
+          <path d="M143 164H201M143 175H201M143 186H195M239 164H296M239 175H296M239 186H289" stroke="#B7D0EF" stroke-width="3" stroke-linecap="round"/>
+          <path d="M135 155L193 201M305 155L247 201" stroke="#EEE8D9" stroke-width="2"/>
+          <path d="M295 108L365 167L351 183L280 123L295 108Z" fill="#F2C34D"/>
+          <path d="M280 123L271 147L294 140L280 123Z" fill="#E59C69"/>
+          <path d="M365 167L372 174C376 178 376 184 372 188C368 192 362 192 358 188L351 183L365 167Z" fill="#F28B67"/>
+          <path d="M63 125C50 125 40 115 40 102V88H63V125Z" fill="#588BCB"/>
+          <path d="M63 125V88H86V102C86 115 76 125 63 125Z" fill="#8BB6EA"/>
+          <path d="M50 88V78C50 71 56 65 63 65C70 65 76 71 76 78V88" stroke="#345F96" stroke-width="7" stroke-linecap="round"/>
+          <path d="M375 95L380 83L385 95L397 100L385 105L380 117L375 105L363 100L375 95Z" fill="#F0A36F"/>
+          <path d="M92 61L95 53L98 61L106 64L98 67L95 75L92 67L84 64L92 61Z" fill="#E9B84B"/>
+          <path d="M340 54L343 48L346 54L352 57L346 60L343 66L340 60L334 57L340 54Z" fill="#4A88D7"/>
+        </svg>
+      </div>
+    </section>
+
+    <section class="panel account-panel" id="accountPanel" aria-labelledby="accountTitle">
+      <h2 id="accountTitle">Create your account or sign in</h2>
+      <p id="accountDescription">Create an account or sign in to generate unlimited handwriting-style assignment pages.</p>
+      <div id="accountForm">
+        <div class="account-mode" aria-label="Account action">
+          <button class="active" id="registerMode" type="button">Create account</button>
+          <button id="loginMode" type="button">Sign in</button>
+        </div>
+        <div class="account-field">
+          <label class="account-label" for="accountEmail">Email</label>
+          <input id="accountEmail" type="email" autocomplete="email" maxlength="254" required />
+        </div>
+        <div class="account-field" id="passwordField">
+          <label class="account-label" for="accountPassword">Password (at least 10 characters)</label>
+          <input id="accountPassword" type="password" autocomplete="new-password" minlength="10" maxlength="128" required />
+        </div>
+        <div class="account-controls">
+          <span></span>
+          <button class="cta" id="accountSubmit" type="button">Create account</button>
+        </div>
+      </div>
+      <div id="verifyPanel" hidden>
+        <div class="account-field">
+          <label class="account-label" for="verificationCode">Six-digit email verification code</label>
+          <input id="verificationCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" />
+        </div>
+        <div class="account-controls">
+          <button class="account-secondary" id="backToAccount" type="button">Back</button>
+          <button class="account-secondary" id="resendVerification" type="button">Resend code</button>
+          <button class="cta" id="verifyButton" type="button">Verify email</button>
+        </div>
+      </div>
+      <div id="signedInPanel" hidden>
+        <div id="accountEmailLabel"></div>
+        <div class="usage-pill" id="usageLabel"></div>
+        <button class="account-secondary" id="signOutButton" type="button">Sign out</button>
+      </div>
+      <div class="account-message" id="accountMessage" aria-live="polite"></div>
+    </section>
+
+    <div class="workspace" id="workspace" hidden>
+      <section class="panel" aria-labelledby="form-title">
+        <div class="panel-header">
+          <h2 id="form-title">1. Upload handwriting + prompt</h2>
+          <p>Give the agent your notes/photo and the assignment topic.</p>
+        </div>
+
+        <form id="generatorForm" novalidate>
+          <div class="field">
+            <label for="sampleFile">Handwriting sample</label>
+            <div class="upload-box" id="uploadBox">
+              <div class="icon-wrap" aria-hidden="true">✎</div>
+              <div class="upload-copy">
+                <strong id="uploadTitle">Drop your handwriting page here</strong>
+                <span id="uploadSubtitle">PNG, JPG, or WebP image</span>
+                <span class="sample-name" id="sampleName"></span>
+              </div>
+              <img id="samplePreview" class="upload-preview" alt="Uploaded sample" />
+              <button class="upload-button" id="browseButton" type="button">Browse</button>
+              <input id="sampleFile" type="file" accept="image/png,image/jpeg,image/webp" />
+            </div>
+            <div id="uploadError" class="upload-error" aria-live="polite"></div>
+            <span class="hint">The system reads the visible handwriting style and uses it to guide the generated content.</span>
+          </div>
+
+          <div class="field">
+            <label for="assignmentType">Type</label>
+            <select id="assignmentType">
+              <option value="assignment">College assignment</option>
+              <option value="notes">Study notes</option>
+              <option value="text">Text pages</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="prompt">Your prompt or assignment instructions</label>
+            <textarea id="prompt" placeholder="Example: Discuss how social media influences communication among college students"></textarea>
+            <span class="hint">The content should match your topic and the writing style visible in the sample.</span>
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="language">Language</label>
+              <select id="language">
+                <option value="English">English</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Urdu">Urdu</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="pageCount">Number of pages</label>
+              <select id="pageCount">
+                <option value="1">1 page</option>
+                <option value="2">2 pages</option>
+                <option value="3">3 pages</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="designFile">Page design <span style="font-weight: 400; color: var(--muted);">(optional)</span></label>
+            <div class="upload-box" id="designUploadBox">
+              <div class="icon-wrap" aria-hidden="true">▧</div>
+              <div class="upload-copy">
+                <strong id="designUploadTitle">Upload your page design</strong>
+                <span id="designUploadSubtitle">It will appear behind the generated text</span>
+                <span class="sample-name" id="designName"></span>
+              </div>
+              <img id="designPreview" class="upload-preview" alt="Uploaded page design preview" />
+              <button class="upload-button" id="designBrowseButton" type="button">Choose image</button>
+              <input id="designFile" type="file" accept="image/png,image/jpeg,image/webp" />
+            </div>
+            <div id="designError" class="upload-error" aria-live="polite"></div>
+            <span class="hint">Upload a page background or template image (PNG, JPG, or WebP, up to 10 MB). This image is used only for page rendering; it is not sent to the AI.</span>
+          </div>
+
+          <div class="notice">
+            <span aria-hidden="true">ℹ️</span>
+            <span><strong>Note:</strong> the AI analyzes the visible handwriting style, then creates original assignment pages. It does not reproduce your exact handwriting as a font.</span>
+          </div>
+
+          <button class="cta" id="generateButton" type="submit">Generate assignment pages</button>
+          <div id="statusText" class="status-text" aria-live="polite"></div>
+        </form>
+      </section>
+
+      <section class="panel preview-panel" aria-labelledby="preview-title">
+        <div class="preview-toolbar">
+          <h2 id="preview-title">2. Generated pages</h2>
+          <div class="toolbar-actions">
+            <button id="downloadButton" class="small-btn" type="button" disabled>Download PDF</button>
+          </div>
+        </div>
+
+        <div class="preview-stage" id="previewStage">
+          <div id="emptyState" class="preview-empty">
+            <div class="empty-icon" aria-hidden="true">✍️</div>
+            <strong>Nothing generated yet</strong>
+            <span>Upload a handwriting page and add your prompt to generate pages.</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="config.js"></script>
+  <script>
+    const configuredApiBase = typeof window.INKTWIN_API_BASE === 'string'
+      ? window.INKTWIN_API_BASE.trim()
+      : '';
+    const isLocalFrontend = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    const API_BASE = (configuredApiBase || (isLocalFrontend
+      ? 'http://localhost:8000/api/v1'
+      : `${window.location.origin}/api/v1`)).replace(/\/+$/, '');
+    const API_ORIGIN = API_BASE.replace(/\/api\/v1$/, '');
+    const apiStatus = document.getElementById('apiStatus');
+    const form = document.getElementById('generatorForm');
+    const sampleFileInput = document.getElementById('sampleFile');
+    const browseButton = document.getElementById('browseButton');
+    const uploadBox = document.getElementById('uploadBox');
+    const uploadError = document.getElementById('uploadError');
+    const samplePreview = document.getElementById('samplePreview');
+    const sampleName = document.getElementById('sampleName');
+    const statusText = document.getElementById('statusText');
+    const previewStage = document.getElementById('previewStage');
+    const emptyState = document.getElementById('emptyState');
+    const downloadButton = document.getElementById('downloadButton');
+    const generateButton = document.getElementById('generateButton');
+    const designFileInput = document.getElementById('designFile');
+    const designUploadBox = document.getElementById('designUploadBox');
+    const designPreview = document.getElementById('designPreview');
+    const designName = document.getElementById('designName');
+    const designError = document.getElementById('designError');
+    const authTokenKey = 'inktwin_access_token';
+    const accountForm = document.getElementById('accountForm');
+    const verifyPanel = document.getElementById('verifyPanel');
+    const signedInPanel = document.getElementById('signedInPanel');
+    const accountMessage = document.getElementById('accountMessage');
+    const workspace = document.getElementById('workspace');
+
+    let uploadedImageUrl = null;
+    let pageDesignUrl = null;
+    let generatedPayload = null;
+    let authToken = localStorage.getItem(authTokenKey);
+    let accountState = null;
+    let accountMode = 'register';
+
+    async function checkAgentStatus() {
+      try {
+        const response = await fetch(`${API_ORIGIN}/health`, { method: 'GET' });
+        if (response.ok) {
+          const data = await response.json();
+          apiStatus.textContent = data.provider_configured ? 'Agent online' : 'Agent needs API key';
+          apiStatus.style.background = data.provider_configured ? '#eaf2ff' : '#fff1db';
+          apiStatus.style.color = data.provider_configured ? '#123d78' : '#8a5a1d';
+          apiStatus.style.borderColor = data.provider_configured ? '#c9dcf5' : '#f0d8ab';
+        } else {
+          apiStatus.textContent = 'Agent offline';
+          apiStatus.style.background = '#fff1db';
+          apiStatus.style.color = '#8a5a1d';
+          apiStatus.style.borderColor = '#f0d8ab';
+        }
+      } catch (error) {
+        apiStatus.textContent = 'Agent offline';
+        apiStatus.style.background = '#fff1db';
+        apiStatus.style.color = '#8a5a1d';
+        apiStatus.style.borderColor = '#f0d8ab';
+      }
+    }
+
+    async function apiRequest(path, options = {}) {
+      const headers = new Headers(options.headers || {});
+      if (authToken) headers.set('Authorization', `Bearer ${authToken}`);
+      if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
+      const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const detail = payload.detail || 'The request could not be completed.';
+        throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+      }
+      return payload;
+    }
+
+    function showAccountMessage(message, isError = false) {
+      accountMessage.textContent = message;
+      accountMessage.classList.toggle('error', isError);
+    }
+
+    function setAccountMode(mode) {
+      accountMode = mode;
+      document.getElementById('registerMode').classList.toggle('active', mode === 'register');
+      document.getElementById('loginMode').classList.toggle('active', mode === 'login');
+      document.getElementById('accountTitle').textContent = mode === 'register' ? 'Create your account' : 'Sign in to InkTwin';
+      document.getElementById('accountSubmit').textContent = mode === 'register' ? 'Create account' : 'Sign in';
+      document.getElementById('accountPassword').autocomplete = mode === 'register' ? 'new-password' : 'current-password';
+      document.getElementById('accountPassword').minLength = mode === 'register' ? 10 : 1;
+      showAccountMessage('');
+    }
+
+    async function refreshAccount() {
+      accountState = await apiRequest('/auth/me');
+      accountForm.hidden = true;
+      verifyPanel.hidden = true;
+      signedInPanel.hidden = false;
+      document.getElementById('accountEmailLabel').textContent = `Signed in as ${accountState.email}`;
+      document.getElementById('usageLabel').textContent = `${accountState.assignments_generated} assignment${accountState.assignments_generated === 1 ? '' : 's'} generated`;
+      workspace.hidden = false;
+    }
+
+    async function restoreAccount() {
+      if (!authToken) return;
+      try {
+        await refreshAccount();
+      } catch (error) {
+        authToken = null;
+        localStorage.removeItem(authTokenKey);
+        showAccountMessage('Your session expired. Please sign in again.', true);
+      }
+    }
+
+    document.getElementById('registerMode').addEventListener('click', () => setAccountMode('register'));
+    document.getElementById('loginMode').addEventListener('click', () => setAccountMode('login'));
+    document.getElementById('accountSubmit').addEventListener('click', async () => {
+      const email = document.getElementById('accountEmail').value.trim();
+      const password = document.getElementById('accountPassword').value;
+      if (!email || !password) {
+        showAccountMessage('Enter your email and password.', true);
+        return;
+      }
+      if (accountMode === 'register' && password.length < 10) {
+        showAccountMessage('Use a password with at least 10 characters.', true);
+        return;
+      }
+      const button = document.getElementById('accountSubmit');
+      button.disabled = true;
+      try {
+        const result = await apiRequest(accountMode === 'register' ? '/auth/register' : '/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        });
+        if (accountMode === 'register') {
+          accountForm.hidden = true;
+          verifyPanel.hidden = false;
+          document.getElementById('accountEmail').value = email;
+          showAccountMessage(result.message);
+          document.getElementById('verificationCode').focus();
+        } else {
+          authToken = result.access_token;
+          localStorage.setItem(authTokenKey, authToken);
+          await refreshAccount();
+          showAccountMessage('');
+        }
+      } catch (error) {
+        if (accountMode === 'login' && error.message.includes('Verify your email')) {
+          accountForm.hidden = true;
+          verifyPanel.hidden = false;
+        }
+        showAccountMessage(error.message, true);
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.getElementById('verifyButton').addEventListener('click', async () => {
+      const email = document.getElementById('accountEmail').value.trim();
+      const code = document.getElementById('verificationCode').value.trim();
+      try {
+        const result = await apiRequest('/auth/verify', {
+          method: 'POST',
+          body: JSON.stringify({ email, code }),
+        });
+        authToken = result.access_token;
+        localStorage.setItem(authTokenKey, authToken);
+        await refreshAccount();
+        showAccountMessage('');
+      } catch (error) {
+        showAccountMessage(error.message, true);
+      }
+    });
+
+    document.getElementById('backToAccount').addEventListener('click', () => {
+      verifyPanel.hidden = true;
+      accountForm.hidden = false;
+      showAccountMessage('');
+    });
+
+    document.getElementById('resendVerification').addEventListener('click', async () => {
+      try {
+        const result = await apiRequest('/auth/resend-verification', {
+          method: 'POST',
+          body: JSON.stringify({ email: document.getElementById('accountEmail').value.trim() }),
+        });
+        showAccountMessage(result.message);
+      } catch (error) {
+        showAccountMessage(error.message, true);
+      }
+    });
+
+    document.getElementById('signOutButton').addEventListener('click', () => {
+      authToken = null;
+      accountState = null;
+      localStorage.removeItem(authTokenKey);
+      accountForm.hidden = false;
+      verifyPanel.hidden = true;
+      signedInPanel.hidden = true;
+      workspace.hidden = true;
+      generatedPayload = null;
+      downloadButton.disabled = true;
+      for (const child of Array.from(previewStage.children)) {
+        if (child !== emptyState) child.remove();
+      }
+      emptyState.hidden = false;
+      showAccountMessage('You are signed out.');
+    });
+
+
+    browseButton.addEventListener('click', () => sampleFileInput.click());
+    document.getElementById('designBrowseButton').addEventListener('click', () => designFileInput.click());
+
+    sampleFileInput.addEventListener('change', (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      handleSample(file);
+    });
+
+    ['dragenter', 'dragover'].forEach(type => {
+      uploadBox.addEventListener(type, (event) => {
+        event.preventDefault();
+        uploadBox.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(type => {
+      uploadBox.addEventListener(type, (event) => {
+        event.preventDefault();
+        uploadBox.classList.remove('dragover');
+      });
+    });
+
+    uploadBox.addEventListener('drop', (event) => {
+      const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+      if (!file) return;
+      handleSample(file);
+    });
+
+    designFileInput.addEventListener('change', (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (file) handlePageDesign(file);
+    });
+
+    ['dragenter', 'dragover'].forEach(type => {
+      designUploadBox.addEventListener(type, (event) => {
+        event.preventDefault();
+        designUploadBox.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(type => {
+      designUploadBox.addEventListener(type, (event) => {
+        event.preventDefault();
+        designUploadBox.classList.remove('dragover');
+      });
+    });
+
+    designUploadBox.addEventListener('drop', (event) => {
+      const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+      if (file) handlePageDesign(file);
+    });
+
+    function handleSample(file) {
+      const validType = ['image/png', 'image/jpeg', 'image/webp'].includes(file.type);
+      if (!validType) {
+        uploadError.textContent = 'Please upload a PNG, JPG, or WebP image.';
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        uploadError.textContent = 'Image must be less than 10 MB.';
+        return;
+      }
+
+      if (uploadedImageUrl) URL.revokeObjectURL(uploadedImageUrl);
+      uploadedImageUrl = URL.createObjectURL(file);
+      samplePreview.src = uploadedImageUrl;
+      samplePreview.classList.add('visible');
+      sampleName.textContent = file.name;
+      sampleName.classList.add('visible');
+      uploadError.textContent = '';
+      document.getElementById('uploadTitle').textContent = 'Sample loaded';
+      document.getElementById('uploadSubtitle').textContent = 'Ready to generate';
+    }
+
+    function handlePageDesign(file) {
+      const validType = ['image/png', 'image/jpeg', 'image/webp'].includes(file.type);
+      if (!validType) {
+        designError.textContent = 'Please upload a PNG, JPG, or WebP design image.';
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        designError.textContent = 'Page design must be less than 10 MB.';
+        return;
+      }
+
+      if (pageDesignUrl) URL.revokeObjectURL(pageDesignUrl);
+      pageDesignUrl = URL.createObjectURL(file);
+      designPreview.src = pageDesignUrl;
+      designPreview.classList.add('visible');
+      designName.textContent = file.name;
+      designName.classList.add('visible');
+      designError.textContent = '';
+      document.getElementById('designUploadTitle').textContent = 'Page design loaded';
+      document.getElementById('designUploadSubtitle').textContent = 'Click Choose image to replace it';
+      if (generatedPayload) renderPages(generatedPayload);
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const sample = sampleFileInput.files && sampleFileInput.files[0];
+      const prompt = document.getElementById('prompt').value.trim();
+      const language = document.getElementById('language').value;
+      const pageCount = Number(document.getElementById('pageCount').value);
+
+      if (!sample) {
+        statusText.textContent = 'Please upload a handwriting sample.';
+        statusText.classList.add('error');
+        return;
+      }
+      if (!authToken || !accountState) {
+        statusText.textContent = 'Create an account or sign in before generating an assignment.';
+        statusText.classList.add('error');
+        return;
+      }
+      if (!prompt) {
+        statusText.textContent = 'Please provide a prompt or assignment topic.';
+        statusText.classList.add('error');
+        return;
+      }
+      statusText.classList.remove('error');
+      statusText.textContent = 'Generating pages…';
+      generateButton.disabled = true;
+
+      const formData = new FormData();
+      formData.append('sample', sample);
+      formData.append('prompt', prompt);
+      formData.append('language', language);
+      formData.append('page_count', String(pageCount));
+
+      try {
+        const response = await fetch(`${API_BASE}/pages`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${authToken}` },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({}));
+          throw new Error(errorBody.detail || 'Request failed');
+        }
+
+        generatedPayload = await response.json();
+        renderPages(generatedPayload);
+        statusText.textContent = 'Pages generated successfully.';
+        await refreshAccount();
+      } catch (error) {
+        console.error(error);
+        statusText.textContent = error.message || 'Failed to generate pages. Check if the agent server is running and the API key is valid.';
+        statusText.classList.add('error');
+      } finally {
+        generateButton.disabled = false;
+      }
+    });
+
+    function renderPages(payload) {
+      if (!payload || !Array.isArray(payload.pages)) return;
+
+      const pages = payload.pages.slice().sort((a, b) => a.page_number - b.page_number);
+      const metaBox = document.createElement('div');
+      metaBox.className = 'meta-box visible';
+
+      const label = document.createElement('div');
+      label.className = 'section-label';
+      label.textContent = 'Handwriting profile';
+      metaBox.appendChild(label);
+
+      const chips = document.createElement('div');
+      chips.className = 'meta-row';
+      const style = payload.style_profile || {};
+      const styleValues = [
+        style.script_type,
+        style.slant,
+        style.letter_shape,
+        style.stroke_weight,
+        style.spacing,
+        style.line_spacing,
+        style.confidence
+      ].filter(Boolean);
+
+      styleValues.forEach(value => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = value;
+        chips.appendChild(chip);
+      });
+      metaBox.appendChild(chips);
+
+      previewStage.innerHTML = '';
+      const grid = document.createElement('div');
+      grid.className = 'pages-grid';
+
+      pages.forEach((pageData) => {
+        const card = document.createElement('article');
+        card.className = `page-card${pageDesignUrl ? ' has-design' : ''}`;
+        if (pageDesignUrl) card.style.setProperty('--page-design-image', `url("${pageDesignUrl}")`);
+
+        const title = document.createElement('h3');
+        title.textContent = pageData.title || 'Assignment Page';
+        card.appendChild(title);
+
+        const topic = document.createElement('div');
+        topic.className = 'topic';
+        topic.textContent = payload.language || 'Language';
+        card.appendChild(topic);
+
+        if (Array.isArray(pageData.content)) {
+          pageData.content.forEach((paragraph) => {
+            const p = document.createElement('p');
+            p.textContent = paragraph;
+            card.appendChild(p);
+          });
+        }
+
+        const pageNo = document.createElement('div');
+        pageNo.className = 'page-number';
+        pageNo.textContent = `Page ${pageData.page_number}`;
+        card.appendChild(pageNo);
+        grid.appendChild(card);
+      });
+
+      previewStage.appendChild(metaBox);
+      previewStage.appendChild(grid);
+      downloadButton.disabled = false;
+    }
+
+    downloadButton.addEventListener('click', async () => {
+      if (!generatedPayload || !Array.isArray(generatedPayload.pages)) return;
+      downloadButton.disabled = true;
+      statusText.classList.remove('error');
+      statusText.textContent = 'Preparing your PDF…';
+
+      try {
+        const pdf = await createAssignmentPdf(generatedPayload);
+        const url = URL.createObjectURL(pdf);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'assignment-pages.pdf';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        statusText.textContent = 'Your PDF is ready and downloading.';
+      } catch (error) {
+        console.error('PDF generation failed:', error);
+        statusText.textContent = 'Could not create the PDF. Please try again.';
+        statusText.classList.add('error');
+      } finally {
+        downloadButton.disabled = false;
+      }
+    });
+
+    async function createAssignmentPdf(payload) {
+      const pageWidth = 1240;
+      const pageHeight = 1754;
+      const jpegPages = [];
+      const designImage = pageDesignUrl ? await loadImage(pageDesignUrl) : null;
+
+      for (const pageData of payload.pages) {
+        const canvas = document.createElement('canvas');
+        canvas.width = pageWidth;
+        canvas.height = pageHeight;
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Canvas is unavailable.');
+
+        context.fillStyle = '#fffefb';
+        context.fillRect(0, 0, pageWidth, pageHeight);
+        if (designImage) drawCoverImage(context, designImage, pageWidth, pageHeight);
+
+        const margin = 112;
+        const textWidth = pageWidth - margin * 2;
+        context.textAlign = 'center';
+        context.fillStyle = '#123d78';
+        context.font = 'bold 44px "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive';
+        drawWrappedText(context, pageData.title || 'Assignment Page', pageWidth / 2, 170, textWidth, 58);
+
+        context.fillStyle = '#28578e';
+        context.font = 'bold 23px "Segoe UI", sans-serif';
+        context.fillText(payload.language || 'Assignment', pageWidth / 2, 235);
+
+        context.textAlign = 'left';
+        context.fillStyle = '#183b68';
+        context.font = '30px "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive';
+        let y = 310;
+        for (const paragraph of Array.isArray(pageData.content) ? pageData.content : []) {
+          const lines = wrapText(context, paragraph, textWidth);
+          for (const line of lines) {
+            if (y > pageHeight - 115) break;
+            context.fillText(line, margin, y);
+            y += 47;
+          }
+          y += 24;
+        }
+
+        context.textAlign = 'right';
+        context.fillStyle = '#71827b';
+        context.font = '20px "Segoe UI", sans-serif';
+        context.fillText(`Page ${pageData.page_number}`, pageWidth - margin, pageHeight - 55);
+
+        const jpeg = await new Promise((resolve, reject) => {
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('The page image could not be encoded.'));
+          }, 'image/jpeg', 0.94);
+        });
+        jpegPages.push(new Uint8Array(await jpeg.arrayBuffer()));
+      }
+
+      return buildImagePdf(jpegPages, pageWidth, pageHeight);
+    }
+
+    function loadImage(source) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error('The uploaded page design could not be loaded.'));
+        image.src = source;
+      });
+    }
+
+    function drawCoverImage(context, image, width, height) {
+      const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+      const cropWidth = width / scale;
+      const cropHeight = height / scale;
+      const cropX = (image.naturalWidth - cropWidth) / 2;
+      const cropY = (image.naturalHeight - cropHeight) / 2;
+      context.drawImage(image, cropX, cropY, cropWidth, cropHeight, 0, 0, width, height);
+    }
+
+    function wrapText(context, text, maxWidth) {
+      const words = String(text).split(/\s+/).filter(Boolean);
+      const lines = [];
+      let line = '';
+      for (const word of words) {
+        const candidate = line ? `${line} ${word}` : word;
+        if (line && context.measureText(candidate).width > maxWidth) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = candidate;
+        }
+      }
+      if (line) lines.push(line);
+      return lines;
+    }
+
+    function drawWrappedText(context, text, x, y, maxWidth, lineHeight) {
+      const lines = wrapText(context, text, maxWidth);
+      lines.forEach((line, index) => context.fillText(line, x, y + index * lineHeight));
+      return lines.length;
+    }
+
+    function buildImagePdf(images, imageWidth, imageHeight) {
+      const encoder = new TextEncoder();
+      const chunks = [];
+      const offsets = [0];
+      let byteLength = 0;
+
+      function appendText(text) {
+        const bytes = encoder.encode(text);
+        chunks.push(bytes);
+        byteLength += bytes.length;
+      }
+
+      function appendBytes(bytes) {
+        chunks.push(bytes);
+        byteLength += bytes.length;
+      }
+
+      appendText('%PDF-1.4\n');
+      offsets[1] = byteLength;
+      appendText('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+      offsets[2] = byteLength;
+      const pageReferences = images.map((_, index) => `${3 + index * 3} 0 R`).join(' ');
+      appendText(`2 0 obj\n<< /Type /Pages /Kids [${pageReferences}] /Count ${images.length} >>\nendobj\n`);
+
+      images.forEach((image, index) => {
+        const pageObject = 3 + index * 3;
+        const imageObject = pageObject + 1;
+        const contentObject = pageObject + 2;
+        const content = encoder.encode('q\n595.28 0 0 841.89 0 0 cm\n/Im0 Do\nQ\n');
+
+        offsets[pageObject] = byteLength;
+        appendText(`${pageObject} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 ${imageObject} 0 R >> >> /Contents ${contentObject} 0 R >>\nendobj\n`);
+
+        offsets[imageObject] = byteLength;
+        appendText(`${imageObject} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imageWidth} /Height ${imageHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.length} >>\nstream\n`);
+        appendBytes(image);
+        appendText('\nendstream\nendobj\n');
+
+        offsets[contentObject] = byteLength;
+        appendText(`${contentObject} 0 obj\n<< /Length ${content.length} >>\nstream\n`);
+        appendBytes(content);
+        appendText('endstream\nendobj\n');
+      });
+
+      const objectCount = 2 + images.length * 3;
+      const crossReferenceOffset = byteLength;
+      appendText(`xref\n0 ${objectCount + 1}\n0000000000 65535 f \n`);
+      for (let object = 1; object <= objectCount; object += 1) {
+        appendText(`${String(offsets[object]).padStart(10, '0')} 00000 n \n`);
+      }
+      appendText(`trailer\n<< /Size ${objectCount + 1} /Root 1 0 R >>\nstartxref\n${crossReferenceOffset}\n%%EOF`);
+
+      return new Blob(chunks, { type: 'application/pdf' });
+    }
+
+    checkAgentStatus();
+    restoreAccount();
+    setInterval(checkAgentStatus, 15000);
+  </script>
+</body>
+</html>
